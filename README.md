@@ -27,3 +27,7 @@ OS : Ubuntu-22.04 기준
    -> chmod +x install-kubernetes.sh
    2-3. 실행
    -> ./install-kubernetes.sh
+
+3. 클러스터 초기화 (kubeadm init)
+   3.1 CNI(Container Network Interface) 플러그인 중 Cilium 사용 
+5. 
