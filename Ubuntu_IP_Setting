@@ -1,0 +1,45 @@
+윈도우 OS에서 hyper-v로 우분투를 설치 후 진행해야할 일들.
+
+우분투설치까지의 과정은 찾기 쉬우므로 패스한다.
+
+우분투 설치 후 우분투에서 인터넷 설정을 잡아줘야함 
+
+1. 인터페이스 이름 확인
+- > ip link show
+    <BROADCAST,MULTICAST,UP,LOWER_UP> ... 의 앞에 이름 확인
+    ex) eth0: <BROADCAST,MULTICAST,UP,LOWER_UP> ... 인 경우
+
+2. netplan 설정잡기
+-> sudo nano /etc/netplan/01-netcfg.yaml
+network:
+  version: 2
+  renderer: networkd
+  ethernets:
+    eth0:
+      dhcp4: no
+      addresses:
+        - 192.168.0.100/24   # 이건 네트워크에 맞게 바꿔줘야 함
+      gateway4: 192.168.0.1   # 공유기나 라우터의 주소
+      nameservers:
+        addresses: [8.8.8.8, 1.1.1.1]
+
+3. 파일 권한 수정
+-> sudo chmod 600 /etc/netplan/01-netcfg.yaml
+
+4. netplan 적용하기
+-> sudo netplan apply
+
+5. 최종 확인
+-> ip a
+eth0에 우리가 설정한 IP가 보여야 함.
+
+ping 8.8.8.8
+ping archive.ubuntu.com
+
+만약 ping이 안되는 경우 윈도우에서의 추가 설정필요 powershell에서 아래의 명령어 실행 해볼것
+
+New-VMSwitch -Name "NATSwitch" -SwitchType Internal 
+New-NetIPAddress -IPAddress 192.168.100.1 -PrefixLength 24 -InterfaceAlias "vEthernet (NATSwitch)"
+New-NetNat -Name "NATNetwork" -InternalIPInterfaceAddressPrefix 192.168.100.0/24
+
+완료시 ping을 다시 시도한다.
