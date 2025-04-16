@@ -1,0 +1,36 @@
+#!/bin/bash
+
+set -e
+
+echo "📦 Step 1: 기존 Docker 관련 패키지 제거 중..."
+sudo apt remove -y docker docker-engine docker.io containerd runc || true
+
+echo "🔧 Step 2: 필수 패키지 설치 중..."
+sudo apt update
+sudo apt install -y ca-certificates curl gnupg lsb-release
+
+echo "🔑 Step 3: Docker GPG 키 추가 중..."
+sudo mkdir -p /etc/apt/keyrings
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | \
+sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+
+echo "📂 Step 4: Docker 저장소 추가 중..."
+echo \
+  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] \
+  https://download.docker.com/linux/ubuntu \
+  $(lsb_release -cs) stable" | \
+  sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+echo "🔄 Step 5: 패키지 목록 갱신 중..."
+sudo apt update
+
+echo "🐳 Step 6: Docker 설치 중..."
+sudo apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+
+echo "✅ Step 7: Docker 설치 완료! 버전 확인:"
+docker --version
+
+echo "🚀 Step 8: Hello World 테스트 실행:"
+sudo docker run hello-world
+
+echo "🎉 모든 작업이 완료되었습니다!"
