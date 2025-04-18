@@ -27,46 +27,73 @@ OS : Ubuntu-22.04 기준
    -> chmod +x install-kubernetes.sh
    2-3. 실행
    -> ./install-kubernetes.sh
-
-3. 클러스터 초기화 (kubeadm init)
-   3.1 CNI(Container Network Interface) 플러그인 중 Cilium 사용 
-   -> sudo nano /etc/containerd/config.toml
-      파일 내에서 disabled_plugins 항목에 cri가 없어야 하고,
-     plugins."io.containerd.grpc.v1.cri" 블록이 존재해야 함
-       [plugins."io.containerd.grpc.v1.cri"]
-           sandbox_image = "registry.k8s.io/pause:3.9"
-   3.1 containerd 재시작
-   -> sudo systemctl restart containerd
-   3.2  kubeadm init 
-   -> sudo kubeadm init --pod-network-cidr=10.0.0.0/16
-   -> mkdir -p $HOME/.kube
-      sudo cp /etc/kubernetes/admin.conf $HOME/.kube/config
+3. helm 설치
+   -> sudo apt-get update
+      sudo apt-get install -y apt-transport-https curl gnupg
+      curl -fsSL https://baltocdn.com/helm/signing.asc | sudo gpg --dearmor -o /usr/share/keyrings/helm.gpg
+      echo "deb [signed-by=/usr/share/keyrings/helm.gpg] https://baltocdn.com/helm/stable/debian/ all main" | \
+      sudo tee /etc/apt/sources.list.d/helm-stable-debian.list
+      sudo apt-get update
+      sudo apt-get install -y helm
+      helm version
+4. Cilium 설치
+   -> pod간의 통신을 위한 네트워크 솔루션
+      sudo swapoff -a
+      sudo rm -rf /etc/cni/net.d
+      rm -f $HOME/.kube/config
+      sudo systemctl restart containerd
+      sudo mkdir -p /etc/containerd
+      containerd config default | sudo tee /etc/containerd/config.toml > /dev/null
+      sudo nano /etc/containerd/config.toml
+      -> [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.runc.options]
+        SystemdCgroup = true 로 변경
+      sudo systemctl restart containerd
+      mkdir -p $HOME/.kube
+      sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
       sudo chown $(id -u):$(id -g) $HOME/.kube/config
-   -> sudo crictl ps -a | grep etcd
-   3.3 정상작동 확인
-   -> sudo crictl info
-   [3.3.1] 3.3에서 오류 발생시
-   -> crictl 설정 파일 수정`ㅌㅌ
-      sudo nano /etc/crictl.yaml
-      runtime-endpoint: unix:///run/containerd/containerd.sock 로 수정 후 저장
-      sudo crictl info 실행
-   
----------------------------------------------------------------
-현재까지 완료된 단계
-1. 도커/containerd 설치
-2. Kubeadm으로 클러스터 초기화
-3. crictl 설정완료
-4. kubeadm init 성공
-남은 단계는 클러스터 사용준비 및 네트워크 구성과 마스터 정상화가 남음
------------------------------------------------------------------
+      4.1. helm 저장소에 Cilium 추가
+        helm repo add cilium https://helm.cilium.io/
+        helm repo update
+      4.2. Cilium 설치
+        helm install cilium cilium/cilium --version 1.14.0 \
+        --namespace kube-system \
+        --set kubeProxyReplacement=true \  
+        --set k8sServiceHost=192.168.100.10(마스터노드 IP) \
+        --set k8sServicePort=6443
+       설명: kubeProxyReplacement=true 를 주는 이유: Cilium이 kube-proxy 없이 kube-proxy 역할도 해주기 때문
+      4.3. 설치 확인
+      kubectl get pods -n kube-system
+      모든 Cilium 관련 Pod가 Running 상태인지 확인하고, coredns도 Running으로 바뀌어야 함.
+      만약 :
+         Name                                      READY   STATUS    RESTARTES  AGE
+         coredns-76f75df574-bd7pr                  1/1     Running   0          35m
+         coredns-76f75df574-c2szz                  1/1     Running   0          35m
+         etcd-culturegift-web                      1/1     Running   0          35m
+         kube-apiserver-culturegift-web            1/1     Running   0          35m
+         kube-controller-manager-culturegift-web   1/1     Running   0          35m
+         kube-proxy-kssl9                          1/1     Running   0          35m
+         kube-scheduler-culturegift-web            1/1     Running   0          35m
+      위와 같은것외에 것이 Running이 아니고 Pendding 이면
+      Cilium Operator 복제본 수 줄이기 (1개만 유지)  replica 수를 1개로 줄이기
+      kubectl -n kube-system get deployment cilium-operator
+      에서 replicas를 1로 줄이기
+      kubectl -n kube-system scale deployment cilium-operator --replicas=1 
+      kubectl delete pod <Name> -n kube-system
+5. 프라이빗 Docker Registry 생성
+docker run -d \
+  -p 5000:5000 \
+  --restart=always \
+  --name registry \
+  registry:2
 
-4. kubectl 설정(마스터 노드에서 kubectl 쓸 수 있게 설정)
-   mkdir -p $HOME/.kube
-   sudo cp /etc/kubernetes/admin.conf $HOME/.kube/config
-   sudo chown $(id -u):$(id -g) $HOME/.kube/config
-5. Cilium 설치 (Pod 네트워크 구성)
-   -> curl -L --remote-name-all https://github.com/cilium/cilium-cli/releases/latest/download/cilium-linux-amd64.tar.gz
-      tar xzvf cilium-linux-amd64.tar.gz
-      sudo mv cilium /usr/local/bin
-      cilium install
-7.  
+윈도우 호스트에서 포트 포워딩 설정
+Hyper-V에서 우분투 VM이 윈도우 호스트 포트 5000과 연결되도록 포트 포워딩을 설정하면,
+Jenkins에서 10.5.5.12:5000 으로 접근 가능하게 만들 수 있어야함
+netsh interface portproxy add v4tov4 listenport=5000 listenaddress=10.5.5.12 connectport=5000 connectaddress=192.168.100.10
+
+참고 : 추가: 프라이빗 Registry가 HTTP라면
+Jenkins 쪽 Docker 데몬에 아래 설정도 필요
+{
+  "insecure-registries": ["192.168.100.10:5000"]
+}
+   
