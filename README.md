@@ -90,6 +90,7 @@ docker run -d \
 Hyper-V에서 우분투 VM이 윈도우 호스트 포트 5000과 연결되도록 포트 포워딩을 설정하면,
 Jenkins에서 10.5.5.12:5000 으로 접근 가능하게 만들 수 있어야함
 netsh interface portproxy add v4tov4 listenport=5000 listenaddress=10.5.5.12 connectport=5000 connectaddress=192.168.100.10
+netsh interface portproxy add v4tov4 listenport=5000 listenaddress=10.5.5.12 connectport=5000 connectaddress=192.168.100.0
 
 참고 : 추가: 프라이빗 Registry가 HTTP라면
 Jenkins 쪽 Docker 데몬에 아래 설정도 필요
