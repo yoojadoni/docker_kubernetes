@@ -80,7 +80,7 @@ OS : Ubuntu-22.04 기준
       kubectl -n kube-system scale deployment cilium-operator --replicas=1 
       kubectl delete pod <Name> -n kube-system
 5. 프라이빗 Docker Registry 생성
-docker run -d \
+-> docker run -d \
   -p 5000:5000 \
   --restart=always \
   --name registry \
@@ -97,4 +97,11 @@ Jenkins 쪽 Docker 데몬에 아래 설정도 필요
 {
   "insecure-registries": ["192.168.100.10:5000"]
 }
-   
+
+6.  마스터노드에 워커노드 연결 및 워커노드 생성
+   6-1. 마스터 노드에서 Join Token 생성
+      -> sudo kubeadm token create --print-join-command
+   6.2. 
+8.  
+
+
