@@ -60,6 +60,12 @@ OS : Ubuntu-22.04 기준
         --set kubeProxyReplacement=true \  
         --set k8sServiceHost=192.168.100.10(마스터노드 IP) \
         --set k8sServicePort=6443
+
+         helm install cilium cilium/cilium --version 1.14.0 \
+        --namespace kube-system \
+        --set kubeProxyReplacement=true \
+        --set k8sServiceHost=192.168.100.10 \
+        --set k8sServicePort=6443
        설명: kubeProxyReplacement=true 를 주는 이유: Cilium이 kube-proxy 없이 kube-proxy 역할도 해주기 때문
       4.3. 설치 확인
       kubectl get pods -n kube-system
@@ -79,7 +85,7 @@ OS : Ubuntu-22.04 기준
       에서 replicas를 1로 줄이기
       kubectl -n kube-system scale deployment cilium-operator --replicas=1 
       kubectl delete pod <Name> -n kube-system
-5. 프라이빗 Docker Registry 생성
+6. 프라이빗 Docker Registry 생성
 -> docker run -d \
   -p 5000:5000 \
   --restart=always \
@@ -98,7 +104,20 @@ Jenkins 쪽 Docker 데몬에 아래 설정도 필요
   "insecure-registries": ["192.168.100.10:5000"]
 }
 
-6.  마스터노드에 워커노드 연결 및 워커노드 생성
+6. 방화벽 리스트
+   마스터에서 열어야할 리스트
+   포트	      프로토콜	설명
+   6443	      TCP	Kubernetes API Server (워커 노드가 마스터에 조인 시 필요)
+   2379-2380	TCP	etcd 서버 클러스터 (선택, 마스터 간 통신용. 단일 마스터면 외부 연결 필요 없음)
+   10250	      TCP	Kubelet API (마스터가 워커 노드 상태 확인 등)
+   10259	      TCP	kube-scheduler (선택적: 마스터 노드 간 내부 통신)
+   10257	      TCP	kube-controller-manager (선택적)
+   워커에서 열어야할 리스트
+   포트	프로토콜	설명
+   10250	TCP	Kubelet API (마스터가 워커 노드 상태 수집 등)
+   30000-32767	TCP	NodePort로 서비스할 때 필요
+   8472	UDP	Cilium VXLAN Overlay 네트워킹 (Cilium 사용 시 필수)
+8.  마스터노드에 워커노드 연결 및 워커노드 생성
    참고 : 기존 클러스터 초기화 (재설정)
          -> sudo kubeadm reset -f
             sudo rm -rf /etc/kubernetes/kubelet.conf
@@ -106,15 +125,21 @@ Jenkins 쪽 Docker 데몬에 아래 설정도 필요
             sudo rm -rf ~/.kube
             sudo rm -rf /etc/cni/net.d
             sudo systemctl restart containerd
+             
            Kubernetes 클러스터 재초기화
-         -> sudo kubeadm init --apiserver-advertise-address=192.168.100.10 --pod-network-cidr=10.0.0.0/16
-   6-1. 마스터 노드에서 Join Token 생성
+         -> sudo kubeadm init --config kubeadm-config.yaml
+            mkdir -p $HOME/.kube
+            sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+            sudo chown $(id -u):$(id -g) $HOME/.kube/config
+           kube proxy 삭제
+          -> kubectl -n kube-system delete ds kube-proxy
+    
+   7-1. 마스터 노드에서 Join Token 생성
       -> sudo kubeadm token create --print-join-command
-   6.2. 6-1에서 발급된 명령어 실행
+   7.2. 7-1에서 발급된 명령어 워커노드로 이동해서 실행
       -> kubeadm join 192.168.100.10:6443 --token abcdef.0123456789abcdef \
     --discovery-token-ca-cert-hash sha256:xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
       와 비슷한 명령줄 생성됨.
     
-8.  
 
-
+10. 
