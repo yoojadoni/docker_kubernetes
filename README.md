@@ -99,9 +99,22 @@ Jenkins 쪽 Docker 데몬에 아래 설정도 필요
 }
 
 6.  마스터노드에 워커노드 연결 및 워커노드 생성
+   참고 : 기존 클러스터 초기화 (재설정)
+         -> sudo kubeadm reset -f
+            sudo rm -rf /etc/kubernetes/kubelet.conf
+            sudo rm -rf /etc/kubernetes/pki/ca.crt
+            sudo rm -rf ~/.kube
+            sudo rm -rf /etc/cni/net.d
+            sudo systemctl restart containerd
+           Kubernetes 클러스터 재초기화
+         -> sudo kubeadm init --apiserver-advertise-address=192.168.100.10 --pod-network-cidr=10.0.0.0/16
    6-1. 마스터 노드에서 Join Token 생성
       -> sudo kubeadm token create --print-join-command
-   6.2. 
+   6.2. 6-1에서 발급된 명령어 실행
+      -> kubeadm join 192.168.100.10:6443 --token abcdef.0123456789abcdef \
+    --discovery-token-ca-cert-hash sha256:xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+      와 비슷한 명령줄 생성됨.
+    
 8.  
 
 
