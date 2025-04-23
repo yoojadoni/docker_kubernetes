@@ -117,7 +117,7 @@ Jenkins 쪽 Docker 데몬에 아래 설정도 필요
    10250	TCP	Kubelet API (마스터가 워커 노드 상태 수집 등)
    30000-32767	TCP	NodePort로 서비스할 때 필요
    8472	UDP	Cilium VXLAN Overlay 네트워킹 (Cilium 사용 시 필수)
-8.  마스터노드에 워커노드 연결 및 워커노드 생성
+7.  마스터노드에 워커노드 연결 및 워커노드 생성
    참고 : 기존 클러스터 초기화 (재설정)
          -> sudo kubeadm reset -f
             sudo rm -rf /etc/kubernetes/kubelet.conf
@@ -137,9 +137,19 @@ Jenkins 쪽 Docker 데몬에 아래 설정도 필요
    7-1. 마스터 노드에서 Join Token 생성
       -> sudo kubeadm token create --print-join-command
    7.2. 7-1에서 발급된 명령어 워커노드로 이동해서 실행
-      -> kubeadm join 192.168.100.10:6443 --token abcdef.0123456789abcdef \
-    --discovery-token-ca-cert-hash sha256:xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-      와 비슷한 명령줄 생성됨.
-    
-
-10. 
+      -> sudo kubeadm join 10.5.5.21:6443 --token c2hpi2.e2gbvrh600ls7tat --discovery-token-ca-cert-hash sha256:745965db36102930f20087a003db1316086c1007dcfbe69f6fb62c5caadfef57 --node-name homepage-worker
+      와 비슷한 명령줄 생성됨. --node-name 다음에 워커노드 이름 생성해야함(중요함)
+   7-3. imagePullSecret 생성(마스터노드)
+   kubectl create secret docker-registry regcred \
+  --docker-server=10.5.5.21:5000 \
+  --docker-username=anyuser \
+  --docker-password=anypassword \
+  --docker-email=you@example.com \
+  --namespace default
+   7-3. 워커노드 서버에서 프라이빗 레지스트리 접속 설정 변경
+      -> sudo vi /etc/docker/daemon.json
+         {
+           "insecure-registries": ["10.5.5.21:5000"] #마스터 노드의 서버정보
+         }
+         입력 후 저장
+      -> sudo systemctl restart docker
