@@ -64,7 +64,7 @@ OS : Ubuntu-22.04 기준
          helm install cilium cilium/cilium --version 1.14.0 \
         --namespace kube-system \
         --set kubeProxyReplacement=true \
-        --set k8sServiceHost=192.168.100.10 \
+        --set k8sServiceHost=10.5.5.21 \
         --set k8sServicePort=6443
        설명: kubeProxyReplacement=true 를 주는 이유: Cilium이 kube-proxy 없이 kube-proxy 역할도 해주기 때문
       4.3. 설치 확인
@@ -153,3 +153,10 @@ Jenkins 쪽 Docker 데몬에 아래 설정도 필요
          }
          입력 후 저장
       -> sudo systemctl restart docker
+8. 워커노드에 crictl 설치
+-> sudo apt install -y cri-tools
+
+9. 마스터노드에 ingress 설치
+helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
+helm repo update
+helm install nginx-ingress ingress-nginx/ingress-nginx --namespace 원하는namespace --create-namespace
