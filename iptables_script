@@ -1,0 +1,36 @@
+sudo nano /usr/local/bin/set-ingress-redirect.sh
+
+#!/bin/bash
+
+# HTTP: redirect 80 → 30080
+iptables -t nat -C PREROUTING -p tcp --dport 80 -j REDIRECT --to-port 30080 2>/dev/null || \
+iptables -t nat -A PREROUTING -p tcp --dport 80 -j REDIRECT --to-port 30080
+
+# HTTPS: redirect 443 → 30443
+iptables -t nat -C PREROUTING -p tcp --dport 443 -j REDIRECT --to-port 30443 2>/dev/null || \
+iptables -t nat -A PREROUTING -p tcp --dport 443 -j REDIRECT --to-port 30443
+
+* 실행 권한 부여
+sudo chmod +x /usr/local/bin/set-ingress-redirect.sh
+
+* systemd 파일생성
+sudo nano /etc/systemd/system/ingress-redirect.service
+
+[Unit]
+Description=Set iptables rules for ingress-nginx NodePort redirection
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/set-ingress-redirect.sh
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
+
+* 서비스 등록 및 활성화
+sudo systemctl daemon-reexec
+sudo systemctl daemon-reload
+sudo systemctl enable ingress-redirect.service
+sudo systemctl start ingress-redirect.service
