@@ -61,7 +61,7 @@ OS : Ubuntu-22.04 기준
         --set k8sServiceHost=192.168.100.10(마스터노드 IP) \
         --set k8sServicePort=6443
 
-         helm install cilium cilium/cilium --version 1.14.0 \
+         helm install cilium cilium/cilium --version 1.17.3 \
         --namespace kube-system \
         --set kubeProxyReplacement=true \
         --set k8sServiceHost=10.5.5.21 \
