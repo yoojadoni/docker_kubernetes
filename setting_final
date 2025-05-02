@@ -1,0 +1,67 @@
+# docker_kubernetes
+도커와 쿠버네티스 설치
+
+1. 도커 설치
+1-1. 도커 스크립트를 우분투 혹은 리눅스 OS에 .sh파일로 저장
+-> nano install-docker.sh
+1-2. 실행 권한부여
+-> chmod +x install-docker.sh
+1-3. 실행
+-> ./install-docker.sh
+
+2. 쿠버네티스 설치
+2-1. 쿠버네티스 스크립트를 OS에 .sh파일로 저장
+-> nano install-kubernetes.sh
+2-2. 실행 권한부여
+-> chmod +x install-kubernetes.sh
+2-3. 실행
+-> ./install-kubernetes.sh
+2-4. systemctroup 설정
+-> sudo mkdir -p /etc/containerd
+   containerd config default | sudo tee /etc/containerd/config.toml > /dev/null
+   sudo sed -i 's/SystemdCgroup = false/SystemdCgroup = true/' /etc/containerd/config.toml
+   sudo systemctl restart containerd
+   sudo systemctl enable containerd
+   sudo systemctl status containerd
+3. 클러스터 초기화
+sudo kubeadm reset -f
+sudo rm -rf /etc/kubernetes/kubelet.conf
+sudo rm -rf /etc/kubernetes/pki/ca.crt
+sudo rm -rf ~/.kube
+sudo rm -rf /etc/cni/net.d
+sudo systemctl restart containerd
+
+sudo kubeadm init --config kubeadm-config.yaml
+mkdir -p $HOME/.kube
+sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+sudo chown $(id -u):$(id -g) $HOME/.kube/config
+kube proxy 삭제
+-> kubectl -n kube-system delete ds kube-proxy
+
+======== kubeadm-config.yaml ========
+kubeadm-config.yaml                                                
+apiVersion: kubeadm.k8s.io/v1beta3
+kind: ClusterConfiguration
+kubernetesVersion: v1.29.15
+controlPlaneEndpoint: "10.5.5.21:6443"
+apiServer:
+  certSANs:
+    - 127.0.0.1
+    - localhost
+    - 192.168.100.10   # 내부 IP
+    - 10.5.5.21        # 외부 접근용 IP
+  extraArgs:
+    authorization-mode: Node,RBAC
+    enable-admission-plugins: NodeRestriction
+    runtime-config: api/all=true
+networking:
+  podSubnet: "10.0.0.0/16"
+  serviceSubnet: "10.96.0.0/12"
+  dnsDomain: "cluster.local"
+imageRepository: registry.k8s.io
+---
+
+apiVersion: kubeproxy.config.k8s.io/v1alpha1
+kind: KubeProxyConfiguration
+mode: "iptables"
+================================================
