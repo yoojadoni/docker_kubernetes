@@ -20,7 +20,10 @@
 -> sudo mkdir -p /etc/containerd
    containerd config default | sudo tee /etc/containerd/config.toml > /dev/null
    sudo sed -i 's/SystemdCgroup = false/SystemdCgroup = true/' /etc/containerd/config.toml
-   <img src="https://github.com/user-attachments/assets/a34b242b-9974-423b-bb95-de4fc7dcbca0">
+   sudo nano /etc/containerd/config.toml 아래의 이미지 참고하여 수정
+   https://github.com/user-attachments/assets/a34b242b-9974-423b-bb95-de4fc7dcbca0
+   sudo nano /etc/containerd/cert.d
+   -> 10.5.5.21:5000
    sudo systemctl restart containerd
    sudo systemctl enable containerd
    sudo systemctl status containerd
