@@ -137,7 +137,7 @@ Jenkins 쪽 Docker 데몬에 아래 설정도 필요
    7-1. 마스터 노드에서 Join Token 생성
       -> sudo kubeadm token create --print-join-command
    7.2. 7-1에서 발급된 명령어 워커노드로 이동해서 실행
-      -> sudo kubeadm join 10.5.5.21:6443 --token c2hpi2.e2gbvrh600ls7tat --discovery-token-ca-cert-hash sha256:745965db36102930f20087a003db1316086c1007dcfbe69f6fb62c5caadfef57 --node-name homepage-worker
+      -> sudo kubeadm join --config=kubeadm-join-config.yaml
       와 비슷한 명령줄 생성됨. --node-name 다음에 워커노드 이름 생성해야함(중요함)
    7-3. imagePullSecret 생성(마스터노드)
    kubectl create secret docker-registry regcred \
