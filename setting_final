@@ -42,6 +42,9 @@ sudo chown $(id -u):$(id -g) $HOME/.kube/config
 kube proxy 삭제
 -> kubectl -n kube-system delete ds kube-proxy
 
+4. 워커노드에서
+echo 'KUBELET_EXTRA_ARGS="--node-ip=10.5.5.23"' | sudo tee /var/lib/kubelet/kubeadm-flags.env
+
 ======== kubeadm-config.yaml ========
 kubeadm-config.yaml                                                
 apiVersion: kubeadm.k8s.io/v1beta3
