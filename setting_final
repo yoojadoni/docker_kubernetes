@@ -72,3 +72,64 @@ apiVersion: kubeproxy.config.k8s.io/v1alpha1
 kind: KubeProxyConfiguration
 mode: "iptables"
 ================================================
+
+5. cilium 설치
+helm upgrade cilium cilium/cilium --version 1.17.3 \
+  --namespace kube-system \
+  --set k8sServiceHost=10.5.5.21 \  #마스터노드 IP
+  --set k8sServicePort=6443 \
+  --set kubeProxyReplacement=true \
+  --set enableNodePort=true \
+  --set nodePort.mode=snat \
+  --set nodePort.device=eth0 \
+  --set nodePort.enabled=true \
+  --set nodePort.bindProtection=false \
+  --set enableExternalIPs=true \
+  --set nodeport.addresses="{0.0.0.0/0}"
+
+6. MetalLB설치
+6.1.0 : metallb 추가
+helm repo add metallb https://metallb.github.io/metallb
+helm repo update
+cat << EOF > metallb-values.yaml
+controller:
+  enabled: true
+speaker:
+  enabled: true
+EOF
+kubectl create secret docker-registry regcred \
+  --docker-server=10.5.5.21:5000 \
+  --docker-username=culturegift \
+  --docker-password=culturegift \
+  --namespace metallb-system
+
+6.1.1: helm으로 설치진행
+helm install metallb metallb/metallb --version 0.13.12 \
+  --namespace metallb-system \
+  --create-namespace \
+  --set speaker.frr.enabled=false \
+  -f metallb-values.yaml
+
+6.1.2: IPAddressPool과 L2Advertisement CRD 적용
+cat << EOF > metallb-config.yaml
+apiVersion: metallb.io/v1beta1
+kind: IPAddressPool
+metadata:
+  name: default
+  namespace: metallb-system
+spec:
+  addresses:
+  - 192.168.100.100-192.168.100.120
+---
+apiVersion: metallb.io/v1beta1
+kind: L2Advertisement
+metadata:
+  name: default
+  namespace: metallb-system
+spec:
+  ipAddressPools:
+  - default
+EOF
+kubectl apply -f metallb-config.yaml
+정상작동 확인
+kubectl get pods -n metallb-system
