@@ -1,0 +1,2 @@
+* 워커노드의 os가 재시작 되었을 경우
+-> 워커노드로 접근해서 systemctl restart kubelet 실행
